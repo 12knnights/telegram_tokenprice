@@ -32,6 +32,7 @@ SAGITTARIUS = "8x17zMmVjJxqswjX4hNpxVPc7Tr5UabVJF3kv8TKq8Y3"
 CAPRICORN = "3C2SN1FjzE9MiLFFVRp7Jhkp8Gjwpk29S2TCSJ2jkHn2"
 
 app = FastAPI()
+bot_application = None
 
 async def hello(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(f'Hello {update.effective_user.first_name}')
@@ -99,10 +100,27 @@ async def setup_application():
 @app.on_event("startup")
 async def startup_event():
     global bot_application
-    bot_application = await setup_application()
+    try:
+        bot_application = await setup_application()
+        print("Bot application setup completed")
+    except Exception as e:
+        print(f"Error setting up bot application: {e}")
+        raise
 
 @app.post("/webhook")
 async def webhook(request: Request):
-    update = Update.de_json(await request.json(), bot_application.bot)
-    await bot_application.process_update(update)
-    return {"ok": True}
+    global bot_application
+    if bot_application is None:
+        print("Bot application is not initialized")
+        return {"error": "Bot application not initialized"}
+    try:
+        update = Update.de_json(await request.json(), bot_application.bot)
+        await bot_application.process_update(update)
+        return {"ok": True}
+    except Exception as e:
+        print(f"Error processing update: {e}")
+        return {"error": str(e)}
+
+@app.get("/")
+async def root():
+    return {"message": "Bot is running", "bot_initialized": bot_application is not None}
