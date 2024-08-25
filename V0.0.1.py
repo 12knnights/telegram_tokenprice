@@ -1,8 +1,8 @@
 import os
 from telegram import Update, BotCommand
-from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
+from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, Application
 from fastapi import FastAPI, Request
-import uvicorn
+
 
 BotToken = "7369385672:AAEu8sYSzqUiMcHN9knHkIX7R_orLHbK8pk"
 
@@ -106,6 +106,3 @@ async def webhook(request: Request):
     update = Update.de_json(await request.json(), bot_application.bot)
     await bot_application.process_update(update)
     return {"ok": True}
-
-if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
