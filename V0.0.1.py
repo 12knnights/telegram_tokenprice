@@ -1,11 +1,15 @@
 import os
+from fastapi import FastAPI, Request
 from telegram import Update, BotCommand
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, Application
-from fastapi import FastAPI, Request
+import asyncio
+import requests
 
-
-BotToken = "7369385672:AAEu8sYSzqUiMcHN9knHkIX7R_orLHbK8pk"
-
+# 使用环境变量获取 BOT_TOKEN
+BOT_TOKEN = os.environ.get("BOT_TOKEN")
+if not BOT_TOKEN:
+    raise ValueError("No BOT_TOKEN provided in environment variables")
+    
 # AquariusOnSol
 AQUARIUS = "C49Ut3om3QFTDrMZ5Cr8VcTKPpHDcQ2Fv8mmuJHHigDt"
 # PiscesOnSol
@@ -71,25 +75,21 @@ async def set_commands(application: Application) -> None:
     await application.bot.set_my_commands(commands)
 
 async def setup_application():
-    bot_token = os.environ.get("BOT_TOKEN")
-    if not bot_token:
-        raise ValueError("No BOT_TOKEN provided")
-    
-    application = ApplicationBuilder().token(bot_token).build()
+    application = ApplicationBuilder().token(BOT_TOKEN).build()
     
     # 添加所有的命令处理器
     application.add_handler(CommandHandler("aquarius", lambda update, context: handle_token_price(update, context, AQUARIUS)))
-    application.add_handler(CommandHandler("pisces", lambda update, context: asyncio.create_task(handle_token_price(update, context, PISCES))))
-    application.add_handler(CommandHandler("aries", lambda update, context: asyncio.create_task(handle_token_price(update, context, ARIES))))
-    application.add_handler(CommandHandler("taurus", lambda update, context: asyncio.create_task(handle_token_price(update, context, TAURUS))))
-    application.add_handler(CommandHandler("gemini", lambda update, context: asyncio.create_task(handle_token_price(update, context, GEMINI))))
-    application.add_handler(CommandHandler("cancer", lambda update, context: asyncio.create_task(handle_token_price(update, context, CANCER))))
-    application.add_handler(CommandHandler("leo", lambda update, context: asyncio.create_task(handle_token_price(update, context, LEO))))
-    application.add_handler(CommandHandler("virgo", lambda update, context: asyncio.create_task(handle_token_price(update, context, VIRGO))))
-    application.add_handler(CommandHandler("libra", lambda update, context: asyncio.create_task(handle_token_price(update, context, LIBRA))))
-    application.add_handler(CommandHandler("scorpio", lambda update, context: asyncio.create_task(handle_token_price(update, context, SCORPIO))))
-    application.add_handler(CommandHandler("sagittarius", lambda update, context: asyncio.create_task(handle_token_price(update, context, SAGITTARIUS))))
-    application.add_handler(CommandHandler("capricorn", lambda update, context: asyncio.create_task(handle_token_price(update, context, CAPRICORN))))
+    application.add_handler(CommandHandler("pisces", lambda update, context: handle_token_price(update, context, PISCES)))
+    application.add_handler(CommandHandler("aries", lambda update, context: handle_token_price(update, context, ARIES)))
+    application.add_handler(CommandHandler("taurus", lambda update, context: handle_token_price(update, context, TAURUS)))
+    application.add_handler(CommandHandler("gemini", lambda update, context: handle_token_price(update, context, GEMINI)))
+    application.add_handler(CommandHandler("cancer", lambda update, context: handle_token_price(update, context, CANCER)))
+    application.add_handler(CommandHandler("leo", lambda update, context: handle_token_price(update, context, LEO)))
+    application.add_handler(CommandHandler("virgo", lambda update, context: handle_token_price(update, context, VIRGO)))
+    application.add_handler(CommandHandler("libra", lambda update, context: handle_token_price(update, context, LIBRA)))
+    application.add_handler(CommandHandler("scorpio", lambda update, context: handle_token_price(update, context, SCORPIO)))
+    application.add_handler(CommandHandler("sagittarius", lambda update, context: handle_token_price(update, context, SAGITTARIUS)))
+    application.add_handler(CommandHandler("capricorn", lambda update, context: handle_token_price(update, context, CAPRICORN)))
     application.add_handler(CommandHandler("hello", hello))
     
     # 设置命令列表
@@ -97,21 +97,25 @@ async def setup_application():
     
     return application
 
-@app.on_event("startup")
-async def startup_event():
+async def initialize_bot():
     global bot_application
-    try:
-        bot_application = await setup_application()
-        print("Bot application setup completed")
-    except Exception as e:
-        print(f"Error setting up bot application: {e}")
-        raise
+    if bot_application is None:
+        try:
+            bot_application = await setup_application()
+            print("Bot application setup completed")
+        except Exception as e:
+            print(f"Error setting up bot application: {e}")
+            raise
+
+@app.get("/")
+async def root():
+    await initialize_bot()
+    return {"message": "Bot is running", "bot_initialized": bot_application is not None}
 
 @app.post("/webhook")
 async def webhook(request: Request):
-    global bot_application
+    await initialize_bot()
     if bot_application is None:
-        print("Bot application is not initialized")
         return {"error": "Bot application not initialized"}
     try:
         update = Update.de_json(await request.json(), bot_application.bot)
@@ -120,7 +124,3 @@ async def webhook(request: Request):
     except Exception as e:
         print(f"Error processing update: {e}")
         return {"error": str(e)}
-
-@app.get("/")
-async def root():
-    return {"message": "Bot is running", "bot_initialized": bot_application is not None}

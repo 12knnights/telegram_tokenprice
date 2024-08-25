@@ -1,15 +1,18 @@
 {
-    "version": 2,
-    "builds": [
-      {
-        "src": "V0.0.1.py",
-        "use": "@vercel/python"
-      }
-    ],
-    "routes": [
-      {
-        "src": "/(.*)",
-        "dest": "V0.0.1.py"
-      }
-    ]
+  "version": 2,
+  "builds": [
+    {
+      "src": "V0.0.1.py",
+      "use": "@vercel/python"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "V0.0.1.py"
+    }
+  ],
+  "env": {
+    "BOT_TOKEN": "@bot_token"
   }
+}
